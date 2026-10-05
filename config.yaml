@@ -1,0 +1,57 @@
+# Fresher / entry-level AI jobs in Germany
+mode: jobs
+
+search_keywords:
+  - AI Engineer
+  - Machine Learning Engineer
+  - Data Scientist Entry
+  - Junior AI
+  - AI Intern
+  - Machine Learning Intern
+  - Generative AI Junior
+  - KI Engineer
+  - Working Student AI
+  - Working Student Machine Learning
+  - Deep Learning Junior
+  - LLM Engineer Junior
+  - Artificial Intelligence Trainee
+
+search_keyword: AI Engineer
+location: Germany
+
+job_roles:
+  - AI Engineer
+  - Machine Learning
+  - ML Engineer
+  - Data Scientist
+  - Generative AI
+  - Artificial Intelligence
+  - Deep Learning
+  - LLM
+  - KI
+  - NLP
+
+keywords:
+  - AI
+  - ML
+  - LLM
+
+entry_level_only: true
+require_germany: true
+require_ai: true
+
+max_results: 40
+date_posted: pastMonth
+
+apify_actor_jobs: axery/linkedin-jobs-scraper
+apify_actor_hiring_posts: apt_marble/linkedin-hiring-posts-scraper
+apify_actor: axery/linkedin-jobs-scraper
+
+schedule_hours: 6
+
+output:
+  csv_path: data/ai_germany_fresher_jobs.csv
+  sqlite_path: data/seen_ai_germany_fresher.db
+  google_sheet_id: ""
+  google_worksheet: Leads
+  google_credentials_file: credentials/google-service-account.json

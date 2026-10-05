@@ -1,0 +1,79 @@
+{
+  "name": "LinkedIn Hiring Posts → Qualified Jobs",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "hours", "hoursInterval": 6 }]
+        }
+      },
+      "name": "Every 6 hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "operation": "Run actor and get dataset",
+        "actorId": {
+          "__rl": true,
+          "value": "apt_marble/linkedin-hiring-posts-scraper",
+          "mode": "list"
+        },
+        "customBody": "={\n  \"hiringKeywords\": [\"we are hiring\", \"looking for\", \"join our team\", \"now hiring\", \"open position\"],\n  \"jobRoles\": [\"Software Engineer\", \"Backend Engineer\", \"Frontend Engineer\", \"Python Developer\"],\n  \"keywords\": [\"Python\", \"React\"],\n  \"locations\": [\"Remote\", \"United States\"],\n  \"maxResults\": 50,\n  \"deduplicateResults\": true\n}"
+      },
+      "name": "Get Posts (Apify)",
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [260, 0],
+      "notes": "Connect your Apify credentials. Align jobRoles with config.yaml."
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst out = [];\nconst seen = new Set();\nfor (const item of items) {\n  const j = item.json;\n  const text = (j.postSnippet || j.text || '').toString();\n  const url = (j.postUrl || j.url || '').toString();\n  const id = url.includes('activity-') ? url.split('activity-')[1].split('?')[0] : url || text.slice(0,80);\n  if (!id || seen.has(id)) continue;\n  seen.add(id);\n  out.push({ json: { ...j, post_id: id, post_content: text, post_url: url } });\n}\nreturn out;"
+      },
+      "name": "Dedupe in-run",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 0]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": { "__rl": true, "mode": "id", "value": "YOUR_GOOGLE_SHEET_ID" },
+        "sheetName": { "__rl": true, "mode": "name", "value": "Leads" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Post Content": "={{ $json.post_content }}",
+            "Post URL": "={{ $json.post_url }}",
+            "Company": "={{ $json.hiringCompany }}",
+            "Role": "={{ $json.hiringRole }}",
+            "Author": "={{ $json.recruiterName }}",
+            "Intent": "={{ $json.hiringIntent }}",
+            "Published": "={{ $json.postDate }}"
+          }
+        }
+      },
+      "name": "Append to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [780, 0],
+      "notes": "Create a sheet named Leads with matching headers. Prefer the Python app for full filtering."
+    }
+  ],
+  "connections": {
+    "Every 6 hours": {
+      "main": [[{ "node": "Get Posts (Apify)", "type": "main", "index": 0 }]]
+    },
+    "Get Posts (Apify)": {
+      "main": [[{ "node": "Dedupe in-run", "type": "main", "index": 0 }]]
+    },
+    "Dedupe in-run": {
+      "main": [[{ "node": "Append to Google Sheets", "type": "main", "index": 0 }]]
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

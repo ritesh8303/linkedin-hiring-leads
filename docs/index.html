@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fresh AI DE — Entry-level AI jobs in Germany</title>
+  <meta name="description" content="Browse fresher, junior, trainee, intern, and working-student AI jobs in Germany." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="atmosphere" aria-hidden="true"></div>
+
+  <header class="top">
+    <div class="brand">
+      <span class="mark">AI</span>
+      <div>
+        <p class="brand-name">Fresh AI DE</p>
+        <p class="brand-sub">Germany · entry &amp; fresher AI roles</p>
+      </div>
+    </div>
+    <p class="meta" id="meta">Loading…</p>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>All the AI openings that still welcome freshers.</h1>
+      <p class="lede">Entry-level, junior, trainee, internship, and working-student roles scraped from LinkedIn — Germany only.</p>
+    </section>
+
+    <section class="controls" aria-label="Filters">
+      <label class="search">
+        <span class="sr-only">Search</span>
+        <input id="q" type="search" placeholder="Search title, company, city…" autocomplete="off" />
+      </label>
+      <label>
+        <span>Seniority</span>
+        <select id="seniority">
+          <option value="">All</option>
+        </select>
+      </label>
+      <label>
+        <span>Work type</span>
+        <select id="jobType">
+          <option value="">All</option>
+        </select>
+      </label>
+      <label>
+        <span>City / region</span>
+        <select id="location">
+          <option value="">All Germany</option>
+        </select>
+      </label>
+    </section>
+
+    <p class="count" id="count"></p>
+
+    <section class="list" id="list" aria-live="polite"></section>
+  </main>
+
+  <footer>
+    <p>Data snapshot for personal job search. Always verify on LinkedIn before applying.</p>
+  </footer>
+
+  <template id="card-tpl">
+    <article class="job">
+      <div class="job-top">
+        <div>
+          <h2 class="title"></h2>
+          <p class="company"></p>
+        </div>
+        <div class="tags"></div>
+      </div>
+      <p class="where"></p>
+      <p class="snippet"></p>
+      <div class="actions">
+        <a class="btn primary" target="_blank" rel="noopener noreferrer">View on LinkedIn</a>
+        <span class="posted"></span>
+      </div>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
