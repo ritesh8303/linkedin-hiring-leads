@@ -41,9 +41,25 @@ There is **no separate cloud backend server**. Everything is a **local Python jo
 | `.env` | API keys (never committed) |
 | `data/*.csv` | Scraped jobs |
 | `docs/` | Static site for GitHub Pages |
+| `src/dashboard.py` | Local UI server + Run scrape API (SSE logs) |
+
+## Local dashboard (button + live logs)
+
+```
+Browser  http://127.0.0.1:8787/
+   │
+   ├─ POST /api/run     → starts python pipeline on this PC
+   ├─ GET  /api/events  → live SSE log (providers → filter → save)
+   └─ GET  /jobs.json   → board reload when status = Ready to apply
+```
+
+Start with: `python -m src --dashboard`
+
+GitHub Pages is still a static snapshot only — the **Run scrape** button needs this local process.
 
 ## When it runs
 
-- **Windows task:** `LinkedInDataAIJobScrape` every day at **18:30**
-- PC must be **on** at that time (or wake / StartWhenAvailable)
-- You apply after **~20:00** using the CSV or the GitHub Pages site
+- **On demand:** open local dashboard → **Run scrape** → wait for **Ready to apply**
+- **Windows task:** `DataForgePersonalJobRadar` (or older name) daily at **18:30**
+- PC must be **on** (or wake / StartWhenAvailable)
+- You apply after **~20:00** using the board or CSV

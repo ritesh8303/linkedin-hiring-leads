@@ -21,13 +21,33 @@
         <p class="brand-sub">Remote worldwide · EU hybrid &amp; on-site</p>
       </div>
     </div>
-    <p class="meta" id="meta">Loading…</p>
+    <div class="top-actions">
+      <p class="meta" id="meta">Loading…</p>
+      <button type="button" class="btn run" id="runBtn" disabled title="Start local dashboard first">
+        Run scrape
+      </button>
+    </div>
   </header>
 
   <main>
     <section class="hero">
       <h1>Data Science, ML, and AI roles in one place.</h1>
       <p class="lede">For MSc/BSc Data Science profiles — remote anywhere; hybrid and on-site in the EU.</p>
+    </section>
+
+    <section class="pipeline" id="pipeline" hidden>
+      <div class="pipeline-head">
+        <div>
+          <p class="pipeline-label">Live pipeline</p>
+          <p class="pipeline-status" id="pipelineStatus">Connecting…</p>
+        </div>
+        <p class="pipeline-hint" id="pipelineHint"></p>
+      </div>
+      <div class="ready-banner" id="readyBanner" hidden>
+        <strong>Ready to apply</strong>
+        <span id="readyDetail"></span>
+      </div>
+      <ol class="pipeline-log" id="pipelineLog" aria-live="polite"></ol>
     </section>
 
     <section class="controls" aria-label="Filters">
@@ -61,7 +81,11 @@
   </main>
 
   <footer>
-    <p>Data snapshot for personal job search. Always verify on LinkedIn before applying.</p>
+    <p>
+      Personal Data &amp; AI job radar · snapshot for your apply list.
+      Always verify on the source site before applying.
+      <a href="https://github.com/ritesh8303/linkedin-hiring-leads">Source on GitHub</a>
+    </p>
   </footer>
 
   <template id="card-tpl">

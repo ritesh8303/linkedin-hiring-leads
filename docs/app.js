@@ -1,6 +1,10 @@
+const LOCAL_API = "http://127.0.0.1:8787";
+
 const state = {
   jobs: [],
   updated: "",
+  localOnline: false,
+  running: false,
 };
 
 const els = {
@@ -12,7 +16,22 @@ const els = {
   jobType: document.getElementById("jobType"),
   location: document.getElementById("location"),
   tpl: document.getElementById("card-tpl"),
+  runBtn: document.getElementById("runBtn"),
+  pipeline: document.getElementById("pipeline"),
+  pipelineStatus: document.getElementById("pipelineStatus"),
+  pipelineHint: document.getElementById("pipelineHint"),
+  pipelineLog: document.getElementById("pipelineLog"),
+  readyBanner: document.getElementById("readyBanner"),
+  readyDetail: document.getElementById("readyDetail"),
 };
+
+function apiBase() {
+  // Prefer same-origin when served by local dashboard; else talk to localhost API
+  if (location.hostname === "127.0.0.1" || location.hostname === "localhost") {
+    return location.origin;
+  }
+  return LOCAL_API;
+}
 
 function cityKey(location) {
   if (!location) return "Germany";
@@ -111,7 +130,49 @@ function render() {
   });
 }
 
-async function boot() {
+function appendLog(message, stage) {
+  if (!message) return;
+  const li = document.createElement("li");
+  li.dataset.stage = stage || "info";
+  const time = document.createElement("time");
+  time.textContent = new Date().toLocaleTimeString();
+  const text = document.createElement("span");
+  text.textContent = message;
+  li.append(time, text);
+  els.pipelineLog.appendChild(li);
+  els.pipelineLog.scrollTop = els.pipelineLog.scrollHeight;
+}
+
+function setRunning(running) {
+  state.running = running;
+  els.runBtn.disabled = !state.localOnline || running;
+  els.runBtn.textContent = running ? "Scraping…" : "Run scrape";
+  els.pipeline.hidden = false;
+}
+
+function showReady(detail) {
+  els.readyBanner.hidden = false;
+  els.pipelineStatus.textContent = "Ready to apply";
+  els.readyDetail.textContent = detail || "Board updated — start applying.";
+  els.pipeline.classList.add("is-ready");
+}
+
+function showIdleLocal() {
+  els.pipeline.hidden = false;
+  els.pipelineHint.textContent = "Local dashboard connected.";
+  els.pipelineStatus.textContent = "Idle — click Run scrape";
+}
+
+function showOfflineHint() {
+  els.pipeline.hidden = false;
+  els.pipelineStatus.textContent = "Local pipeline offline";
+  els.pipelineHint.textContent =
+    "Start on your PC: python -m src --dashboard  →  then open http://127.0.0.1:8787/";
+  els.runBtn.disabled = true;
+  els.runBtn.title = "Start local dashboard first";
+}
+
+async function loadJobs() {
   const res = await fetch("./jobs.json", { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to load jobs.json (${res.status})`);
   const data = await res.json();
@@ -136,12 +197,118 @@ async function boot() {
     uniqueSorted(state.jobs.map((j) => cityKey(j.location))),
     "All Germany"
   );
+  render();
+}
 
+function handleEvent(data) {
+  if (data.type === "ping") return;
+
+  if (data.type === "status") {
+    els.pipelineStatus.textContent = data.message || data.status || "Connected";
+    if (data.status === "running") setRunning(true);
+    if (data.status === "done") {
+      setRunning(false);
+      showReady(
+        data.result && typeof data.result.saved === "number"
+          ? `${data.result.saved} new qualified job(s) saved.`
+          : ""
+      );
+    }
+    return;
+  }
+
+  if (data.type === "progress" || data.stage) {
+    appendLog(data.message, data.stage);
+    if (data.stage && data.stage !== "done" && data.stage !== "error") {
+      els.pipelineStatus.textContent = data.message || data.stage;
+      els.readyBanner.hidden = true;
+      els.pipeline.classList.remove("is-ready");
+    }
+    if (data.stage === "done") {
+      setRunning(false);
+      showReady(
+        typeof data.saved === "number" ? `${data.saved} new qualified job(s) saved.` : ""
+      );
+      loadJobs().catch(() => {});
+    }
+    if (data.stage === "error") {
+      setRunning(false);
+      els.pipelineStatus.textContent = "Failed";
+      els.pipeline.classList.remove("is-ready");
+      els.readyBanner.hidden = true;
+    }
+  }
+}
+
+function connectEvents() {
+  const es = new EventSource(`${apiBase()}/api/events`);
+  es.onmessage = (ev) => {
+    try {
+      handleEvent(JSON.parse(ev.data));
+    } catch (_) {
+      /* ignore */
+    }
+  };
+  es.onerror = () => {
+    /* browser will retry; keep UI as-is */
+  };
+  return es;
+}
+
+async function probeLocal() {
+  try {
+    const res = await fetch(`${apiBase()}/api/health`, { cache: "no-store" });
+    if (!res.ok) throw new Error("offline");
+    state.localOnline = true;
+    els.runBtn.disabled = false;
+    els.runBtn.title = "Run LinkedIn guest + SerpAPI + Apify locally";
+    showIdleLocal();
+    connectEvents();
+    return true;
+  } catch (_) {
+    state.localOnline = false;
+    showOfflineHint();
+    return false;
+  }
+}
+
+async function startRun() {
+  if (!state.localOnline || state.running) return;
+  els.pipelineLog.innerHTML = "";
+  els.readyBanner.hidden = true;
+  els.pipeline.classList.remove("is-ready");
+  setRunning(true);
+  els.pipelineStatus.textContent = "Starting…";
+  try {
+    const res = await fetch(`${apiBase()}/api/run`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dry_run: false }),
+    });
+    if (res.status === 409) {
+      appendLog("Pipeline already running", "warning");
+      return;
+    }
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || `HTTP ${res.status}`);
+    }
+  } catch (err) {
+    setRunning(false);
+    els.pipelineStatus.textContent = "Failed to start";
+    appendLog(String(err.message || err), "error");
+  }
+}
+
+async function boot() {
   for (const el of [els.q, els.seniority, els.jobType, els.location]) {
     el.addEventListener("input", render);
     el.addEventListener("change", render);
   }
-  render();
+  els.runBtn.addEventListener("click", startRun);
+
+  await loadJobs();
+  await probeLocal();
 }
 
 boot().catch((err) => {

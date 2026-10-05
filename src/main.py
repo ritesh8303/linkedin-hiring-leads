@@ -18,6 +18,7 @@ from rich.table import Table
 
 from .config import load_config, resolve_path
 from .enrich import enrich_item
+from .progress import EventCallback, emit
 from .providers import fetch_from_providers
 from .scheduler_util import seconds_until_next_run
 from .storage import SeenStore, append_csv, append_google_sheet
@@ -32,7 +33,11 @@ def sample_items() -> list[dict]:
         return json.load(f)
 
 
-def process_items(items: list[dict], cfg: dict) -> list[dict]:
+def process_items(
+    items: list[dict],
+    cfg: dict,
+    on_event: EventCallback | None = None,
+) -> list[dict]:
     roles = cfg.get("job_roles") or []
     keywords = cfg.get("keywords") or []
     mode = (cfg.get("mode") or "jobs").lower()
@@ -48,6 +53,7 @@ def process_items(items: list[dict], cfg: dict) -> list[dict]:
     qualified: list[dict] = []
     stats = {"raw": len(items), "dup": 0, "filtered": 0, "saved": 0}
 
+    emit(on_event, "filter", f"Filtering {len(items)} listings…")
     try:
         for item in items:
             row = enrich_item(
@@ -80,23 +86,32 @@ def process_items(items: list[dict], cfg: dict) -> list[dict]:
         f"[cyan]raw={stats['raw']}[/] filtered={stats['filtered']} "
         f"dupes={stats['dup']} [green]saved={stats['saved']}[/]"
     )
+    emit(
+        on_event,
+        "filter",
+        f"raw={stats['raw']} filtered={stats['filtered']} dupes={stats['dup']} saved={stats['saved']}",
+        **stats,
+    )
     return qualified
 
 
-def save_rows(rows: list[dict], cfg: dict) -> None:
+def save_rows(rows: list[dict], cfg: dict, on_event: EventCallback | None = None) -> None:
     if not rows:
         console.print("[yellow]No new qualified jobs this run.[/]")
+        emit(on_event, "save", "No new qualified jobs this run.")
         return
 
     csv_path = resolve_path(cfg["output"]["csv_path"])
     append_csv(csv_path, rows)
     console.print(f"[green]Saved {len(rows)} row(s) -> {csv_path}[/]")
+    emit(on_event, "save", f"Saved {len(rows)} new job(s) to CSV", saved=len(rows))
 
     sheet_id = (cfg.get("output") or {}).get("google_sheet_id") or ""
     if sheet_id:
         creds = resolve_path(cfg["output"].get("google_credentials_file") or "credentials/google-service-account.json")
         append_google_sheet(creds, sheet_id, cfg["output"].get("google_worksheet") or "Leads", rows)
         console.print(f"[green]Appended {len(rows)} row(s) -> Google Sheet {sheet_id}[/]")
+        emit(on_event, "save", f"Appended {len(rows)} row(s) to Google Sheet")
 
     table = Table(title="New qualified jobs")
     for col in ("company", "hiring_role", "seniority", "location", "job_type"):
@@ -114,30 +129,43 @@ def save_rows(rows: list[dict], cfg: dict) -> None:
         console.print(f"... and {len(rows) - 30} more (see CSV)")
 
 
-def _export_docs_if_enabled(cfg: dict) -> None:
+def _export_docs_if_enabled(cfg: dict, on_event: EventCallback | None = None) -> None:
     if not cfg.get("auto_export_docs"):
         return
     try:
         import subprocess
 
+        emit(on_event, "export", "Exporting docs/jobs.json for the board…")
         script = ROOT / "scripts" / "export_docs_jobs.py"
         subprocess.run([sys.executable, str(script)], cwd=str(ROOT), check=False)
+        emit(on_event, "export", "Board data refreshed (docs/jobs.json)")
     except Exception as exc:  # noqa: BLE001
         console.print(f"[yellow]Docs export skipped:[/] {exc}")
+        emit(on_event, "warning", f"Docs export skipped: {exc}")
 
 
-def run_once(*, dry_run: bool = False) -> int:
+def run_once(*, dry_run: bool = False, on_event: EventCallback | None = None) -> dict:
     cfg = load_config()
+    emit(on_event, "start", "Pipeline started" + (" (dry run)" if dry_run else ""))
     if dry_run:
         console.print("[magenta]Dry run — using sample posts (no network)[/]")
         items = sample_items()
+        emit(on_event, "fetch_done", f"Loaded {len(items)} sample posts", total=len(items))
     else:
-        items = fetch_from_providers(cfg)
+        items = fetch_from_providers(cfg, on_event=on_event)
 
-    rows = process_items(items, cfg)
-    save_rows(rows, cfg)
-    _export_docs_if_enabled(cfg)
-    return 0
+    rows = process_items(items, cfg, on_event=on_event)
+    save_rows(rows, cfg, on_event=on_event)
+    _export_docs_if_enabled(cfg, on_event=on_event)
+    result = {
+        "ok": True,
+        "raw": len(items),
+        "saved": len(rows),
+        "ready_to_apply": True,
+        "message": "Ready to apply",
+    }
+    emit(on_event, "done", "Ready to apply", **result)
+    return result
 
 
 def run_schedule() -> int:
@@ -168,15 +196,28 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Run daily at schedule.time (default 18:30) before evening applications",
     )
+    parser.add_argument(
+        "--dashboard",
+        action="store_true",
+        help="Open local board UI with Run scrape button (http://127.0.0.1:8787)",
+    )
+    parser.add_argument("--host", default="127.0.0.1", help="Dashboard bind host")
+    parser.add_argument("--port", type=int, default=8787, help="Dashboard port")
     args = parser.parse_args(argv)
 
     try:
+        if args.dashboard:
+            from .dashboard import serve
+
+            serve(host=args.host, port=args.port)
+            return 0
         if args.schedule:
             if args.dry_run:
                 console.print("[red]--schedule cannot be combined with --dry-run[/]")
                 return 2
             return run_schedule()
-        return run_once(dry_run=args.dry_run)
+        result = run_once(dry_run=args.dry_run)
+        return 0 if result.get("ok") else 1
     except KeyboardInterrupt:
         console.print("\nStopped.")
         return 130

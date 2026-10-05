@@ -11,6 +11,7 @@ from .apify_budget import record_jobs, remaining_jobs
 from .apify_fetch import build_actor_input, fetch_hiring_posts, list_search_keywords, resolve_actor_id
 from .keyword_rotation import pick_keywords
 from .linkedin_guest import fetch_linkedin_guest_jobs
+from .progress import EventCallback, emit
 from .serpapi_jobs import fetch_google_jobs
 
 console = Console()
@@ -108,7 +109,10 @@ def _plans_for_run(plans: list[dict[str, Any]], cfg: dict[str, Any]) -> list[dic
     return (remote[:1] if remote else []) + eu_pick
 
 
-def fetch_from_providers(cfg: dict[str, Any]) -> list[dict[str, Any]]:
+def fetch_from_providers(
+    cfg: dict[str, Any],
+    on_event: EventCallback | None = None,
+) -> list[dict[str, Any]]:
     providers = cfg.get("providers") or ["linkedin_guest", "serpapi"]
     if isinstance(providers, str):
         providers = [providers]
@@ -135,6 +139,13 @@ def fetch_from_providers(cfg: dict[str, Any]) -> list[dict[str, Any]]:
 
     console.print(f"[cyan]Providers:[/] {', '.join(providers)}")
     console.print(f"Search plans this run: {len(plans)} (of {len(all_plans)} total)")
+    emit(
+        on_event,
+        "providers",
+        f"Providers: {', '.join(providers)} — {len(plans)} search plan(s)",
+        providers=providers,
+        plans=len(plans),
+    )
 
     all_items: list[dict[str, Any]] = []
 
@@ -142,6 +153,7 @@ def fetch_from_providers(cfg: dict[str, Any]) -> list[dict[str, Any]]:
         name = str(provider).strip().lower()
         if name in {"linkedin_guest", "linkedin", "guest"}:
             console.print("[magenta]LinkedIn guest[/]")
+            emit(on_event, "linkedin_guest", "Starting LinkedIn guest searches…")
             for plan in plans:
                 loc = plan.get("location") or "Remote"
                 wtypes = plan.get("workplace_types") or []
@@ -149,8 +161,10 @@ def fetch_from_providers(cfg: dict[str, Any]) -> list[dict[str, Any]]:
                 per = li_remote_k if wtypes == ["remote"] else li_eu_k
                 kws = pick_keywords(full_kws, per_run=per, run_index=run_idx)
                 console.print(f"  Plan: {plan.get('label') or loc} ({len(kws)} keywords)")
+                emit(on_event, "linkedin_guest", f"Plan: {plan.get('label') or loc} ({len(kws)} keywords)")
                 for kw in kws:
                     console.print(f"    Search: {kw}")
+                    emit(on_event, "linkedin_guest", f"Search: {kw} @ {loc}")
                     try:
                         items = fetch_linkedin_guest_jobs(
                             keywords=kw,
@@ -164,6 +178,7 @@ def fetch_from_providers(cfg: dict[str, Any]) -> list[dict[str, Any]]:
                         )
                     except Exception as exc:  # noqa: BLE001
                         console.print(f"    [yellow]LinkedIn guest failed:[/] {exc}")
+                        emit(on_event, "warning", f"LinkedIn guest failed: {exc}")
                         continue
                     for item in items:
                         item.setdefault("searchKeywords", kw)
@@ -172,13 +187,21 @@ def fetch_from_providers(cfg: dict[str, Any]) -> list[dict[str, Any]]:
                             item["workplaceType"] = " ".join(wtypes)
                     all_items, added = merge_unique(all_items, items)
                     console.print(f"    got {len(items)} raw, +{added} unique (total {len(all_items)})")
+                    emit(
+                        on_event,
+                        "linkedin_guest",
+                        f"got {len(items)} raw, +{added} unique (total {len(all_items)})",
+                        total=len(all_items),
+                    )
 
         elif name in {"serpapi", "google_jobs", "serpapi_google_jobs"}:
             token = cfg.get("serpapi_key") or ""
             if not token:
                 console.print("[yellow]Skipping SerpAPI — set SERPAPI_API_KEY in .env[/]")
+                emit(on_event, "warning", "Skipping SerpAPI — set SERPAPI_API_KEY in .env")
                 continue
             console.print(f"[magenta]SerpAPI Google Jobs[/] — {len(serp_keywords)} keyword(s)")
+            emit(on_event, "serpapi", f"Starting SerpAPI — {len(serp_keywords)} keyword(s)")
             chips = cfg.get("serpapi_chips")
             serp_locs = cfg.get("serpapi_locations") or ["Remote", "Berlin, Germany", "Amsterdam, Netherlands"]
             serp_locs = serp_locs[: int(cfg.get("serpapi_locations_per_run") or 3)]
@@ -188,6 +211,7 @@ def fetch_from_providers(cfg: dict[str, Any]) -> list[dict[str, Any]]:
                     if str(loc).lower() == "remote" and "remote" not in q.lower():
                         q = f"{q} remote"
                     console.print(f"  Search: {q} @ {loc}")
+                    emit(on_event, "serpapi", f"Search: {q} @ {loc}")
                     try:
                         items = fetch_google_jobs(
                             api_key=token,
@@ -198,20 +222,29 @@ def fetch_from_providers(cfg: dict[str, Any]) -> list[dict[str, Any]]:
                         )
                     except Exception as exc:  # noqa: BLE001
                         console.print(f"  [yellow]SerpAPI failed:[/] {exc}")
+                        emit(on_event, "warning", f"SerpAPI failed: {exc}")
                         continue
                     for item in items:
                         item.setdefault("searchKeywords", q)
                         item.setdefault("searchLocation", loc)
                     all_items, added = merge_unique(all_items, items)
                     console.print(f"  got {len(items)} raw, +{added} unique (total {len(all_items)})")
+                    emit(
+                        on_event,
+                        "serpapi",
+                        f"got {len(items)} raw, +{added} unique (total {len(all_items)})",
+                        total=len(all_items),
+                    )
 
         elif name == "apify":
             if not cfg.get("apify_token"):
                 console.print("[yellow]Skipping Apify — set APIFY_API_TOKEN in .env[/]")
+                emit(on_event, "warning", "Skipping Apify — set APIFY_API_TOKEN in .env")
                 continue
             left = remaining_jobs(cfg)
             if left <= 0:
                 console.print("[yellow]Apify monthly job budget exhausted — skipping until next month[/]")
+                emit(on_event, "warning", "Apify monthly job budget exhausted — skipping until next month")
                 continue
             per_search = min(
                 int(cfg.get("apify_max_jobs_per_search") or 20),
@@ -219,6 +252,11 @@ def fetch_from_providers(cfg: dict[str, Any]) -> list[dict[str, Any]]:
             )
             searches = int(cfg.get("apify_searches_per_run") or 2)
             console.print(f"[magenta]Apify[/] budget left ~{left} jobs; {searches} search(es) x {per_search} jobs")
+            emit(
+                on_event,
+                "apify",
+                f"Apify budget left ~{left} jobs; {searches} search(es) × {per_search}",
+            )
             actor = resolve_actor_id(cfg)
             apify_plans = plans[:1] + [p for p in plans if p.get("workplace_types") != ["remote"]][:1]
             apify_kws = pick_keywords(
@@ -236,6 +274,7 @@ def fetch_from_providers(cfg: dict[str, Any]) -> list[dict[str, Any]]:
                         break
                     cap = min(per_search, left - used_this_run)
                     console.print(f"  Search: {kw} @ {loc} (max {cap})")
+                    emit(on_event, "apify", f"Search: {kw} @ {loc} (max {cap})")
                     run_input = build_actor_input(cfg, keyword=kw)
                     run_input["location"] = loc
                     run_input["maxItems"] = cap
@@ -243,6 +282,7 @@ def fetch_from_providers(cfg: dict[str, Any]) -> list[dict[str, Any]]:
                         items = fetch_hiring_posts(cfg["apify_token"], actor, run_input)
                     except Exception as exc:  # noqa: BLE001
                         console.print(f"  [yellow]Apify failed:[/] {exc}")
+                        emit(on_event, "warning", f"Apify failed: {exc}")
                         continue
                     used_this_run += len(items)
                     record_jobs(len(items), cfg)
@@ -252,9 +292,22 @@ def fetch_from_providers(cfg: dict[str, Any]) -> list[dict[str, Any]]:
                         item.setdefault("source", "apify")
                     all_items, added = merge_unique(all_items, items)
                     console.print(f"  got {len(items)} raw, +{added} unique (total {len(all_items)})")
+                    emit(
+                        on_event,
+                        "apify",
+                        f"got {len(items)} raw, +{added} unique (total {len(all_items)})",
+                        total=len(all_items),
+                    )
             console.print(f"  Apify used {used_this_run} jobs this run; ~{remaining_jobs(cfg)} left this month")
+            emit(
+                on_event,
+                "apify",
+                f"Apify used {used_this_run} jobs this run; ~{remaining_jobs(cfg)} left this month",
+            )
 
         else:
             console.print(f"[yellow]Unknown provider skipped:[/] {provider}")
+            emit(on_event, "warning", f"Unknown provider skipped: {provider}")
 
+    emit(on_event, "fetch_done", f"Fetch complete — {len(all_items)} unique raw listings", total=len(all_items))
     return all_items
