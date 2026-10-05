@@ -1,57 +1,143 @@
-# Fresher / entry-level AI jobs in Germany
+# Data + AI sector (MSc/BSc Data Science) — Remote worldwide + EU hybrid/onsite
 mode: jobs
 
-search_keywords:
-  - AI Engineer
-  - Machine Learning Engineer
-  - Data Scientist Entry
-  - Junior AI
-  - AI Intern
-  - Machine Learning Intern
-  - Generative AI Junior
-  - KI Engineer
-  - Working Student AI
-  - Working Student Machine Learning
-  - Deep Learning Junior
-  - LLM Engineer Junior
-  - Artificial Intelligence Trainee
+providers:
+  - linkedin_guest
+  - serpapi
+  - apify
 
-search_keyword: AI Engineer
-location: Germany
+location_policy: remote_worldwide_eu_hybrid_onsite
+require_germany: false
+require_data_ai: true
+require_ai: false
+entry_level_only: false
+
+# Broad DS / AI / analytics roles (not only fresher)
+search_keywords:
+  - Data Scientist
+  - Data Science
+  - Data Analyst
+  - Analytics Engineer
+  - Data Engineer
+  - Machine Learning Engineer
+  - ML Engineer
+  - AI Engineer
+  - Applied Scientist
+  - Research Scientist
+  - Business Intelligence Analyst
+  - BI Analyst
+  - Quantitative Analyst
+  - Junior Data Scientist
+  - Graduate Data Scientist
+  - Data Science Intern
+  - Machine Learning Intern
+  - NLP Engineer
+  - Computer Vision Engineer
+  - Deep Learning Engineer
+  - Generative AI Engineer
+  - LLM Engineer
+  - MLOps Engineer
+  - Data Analytics
+  - Statistician
 
 job_roles:
-  - AI Engineer
+  - Data Scientist
+  - Data Analyst
+  - Data Engineer
+  - Analytics
   - Machine Learning
   - ML Engineer
-  - Data Scientist
-  - Generative AI
-  - Artificial Intelligence
-  - Deep Learning
-  - LLM
-  - KI
+  - AI Engineer
+  - Business Intelligence
+  - Research Scientist
+  - Applied Scientist
+  - Quantitative
   - NLP
+  - Computer Vision
+  - Deep Learning
+  - Generative AI
+  - MLOps
+  - Artificial Intelligence
 
 keywords:
+  - data
+  - analytics
+  - machine learning
   - AI
   - ML
-  - LLM
 
-entry_level_only: true
-require_germany: true
-require_ai: true
+# Per-run limits (rotate daily — full coverage over ~1 week)
+linkedin_remote_keywords_per_run: 6
+linkedin_eu_keywords_per_run: 4
+eu_countries_per_run: 4
+eu_max_keywords: 4
 
-max_results: 40
-date_posted: pastMonth
+remote_search_locations:
+  - Remote
+
+eu_search_locations:
+  - Germany
+  - Netherlands
+  - France
+  - Spain
+  - Ireland
+  - Poland
+  - Portugal
+  - Belgium
+  - Austria
+  - Italy
+  - Sweden
+  - Denmark
+
+serpapi_keywords:
+  - Data Scientist remote
+  - Data Analyst remote
+  - Machine Learning Engineer
+  - Data Engineer
+  - AI Engineer
+  - Analytics Engineer
+  - Junior Data Scientist
+  - Graduate Data Scientist
+
+serpapi_locations:
+  - Remote
+  - Berlin, Germany
+  - Amsterdam, Netherlands
+  - Dublin, Ireland
+
+serpapi_keywords_per_run: 5
+serpapi_locations_per_run: 3
+serpapi_max_results: 15
+
+# ~$5/month on axery (~$1.50/1000 jobs) → ~450 jobs/month cap
+apify_monthly_job_budget: 450
+apify_max_jobs_per_search: 18
+apify_searches_per_run: 2
+
+search_keyword: Data Scientist
+location: Remote
+
+max_results: 20
+date_posted: pastWeek
+
+linkedin_fetch_details: true
+linkedin_delay_sec: 1.5
 
 apify_actor_jobs: axery/linkedin-jobs-scraper
 apify_actor_hiring_posts: apt_marble/linkedin-hiring-posts-scraper
 apify_actor: axery/linkedin-jobs-scraper
 
-schedule_hours: 6
+# Daily scrape before you apply (~8 PM). Default: 6:30 PM Europe/Berlin
+schedule:
+  time: "18:30"
+  timezone: Europe/Berlin
+  run_on_start: false
+
+auto_export_docs: true
 
 output:
-  csv_path: data/ai_germany_fresher_jobs.csv
-  sqlite_path: data/seen_ai_germany_fresher.db
+  csv_path: data/data_ai_remote_eu_jobs.csv
+  sqlite_path: data/seen_data_ai_remote_eu.db
   google_sheet_id: ""
   google_worksheet: Leads
   google_credentials_file: credentials/google-service-account.json

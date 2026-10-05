@@ -1,19 +1,30 @@
-"""Export filtered CSV snapshot to docs/jobs.json for GitHub Pages."""
+"""Export job CSV snapshot to docs/jobs.json for GitHub Pages."""
 
 from __future__ import annotations
 
 import csv
 import json
+import sys
 from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-CSV_PATH = ROOT / "data" / "ai_germany_fresher_jobs.csv"
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.config import load_config, resolve_path
+
 OUT_PATH = ROOT / "docs" / "jobs.json"
 
 
 def main() -> None:
-    with CSV_PATH.open(encoding="utf-8", newline="") as f:
+    cfg = load_config()
+    csv_path = resolve_path(cfg["output"]["csv_path"])
+    if not csv_path.exists():
+        print(f"No CSV yet at {csv_path}")
+        return
+
+    with csv_path.open(encoding="utf-8", newline="") as f:
         records = list(csv.DictReader(f))
 
     out = []

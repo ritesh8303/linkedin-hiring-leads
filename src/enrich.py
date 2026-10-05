@@ -3,9 +3,10 @@ from __future__ import annotations
 from typing import Any
 
 from .filters import (
+    allows_location_policy,
     detect_job_type,
     extract_contacts,
-    is_ai_related,
+    is_data_ai_sector,
     is_fresher_friendly,
     is_germany_location,
     normalize_linkedin_text,
@@ -66,8 +67,10 @@ def enrich_item(
     mode: str = "jobs",
     entry_level_only: bool = False,
     require_germany: bool = False,
+    location_policy: str = "",
     search_location: str = "",
     require_ai: bool = False,
+    require_data_ai: bool = False,
 ) -> dict[str, Any] | None:
     text = post_text(item)
     url = post_url(item)
@@ -99,10 +102,20 @@ def enrich_item(
         if not (title or text).strip():
             return None
 
-    if require_germany and not is_germany_location(location, search_loc):
-        return None
+    author_url = item.get("authorProfileUrl") or item.get("companyUrl") or item.get("author_linkedin") or ""
+    workplace = str(item.get("workplaceType") or item.get("workType") or location)
+    job_type = detect_job_type(normalize_linkedin_text(f"{workplace} {blob}").lower())
 
-    if require_ai and not is_ai_related(title, text, job_roles):
+    if require_germany:
+        if not location or not is_germany_location(location):
+            return None
+
+    policy = (location_policy or "").strip().lower()
+    if policy in {"remote_world_eu_local", "remote_worldwide_eu_hybrid_onsite"}:
+        if not allows_location_policy(job_type=job_type, location=location, description=text):
+            return None
+
+    if (require_data_ai or require_ai) and not is_data_ai_sector(title, text, job_roles):
         return None
 
     if entry_level_only and not is_fresher_friendly(title=title, seniority=seniority, description=text):
@@ -124,10 +137,6 @@ def enrich_item(
         or item.get("timestamp")
         or ""
     )
-    author_url = item.get("authorProfileUrl") or item.get("companyUrl") or item.get("author_linkedin") or ""
-    workplace = str(item.get("workplaceType") or item.get("workType") or location)
-    job_type = detect_job_type(normalize_linkedin_text(f"{workplace} {blob}").lower())
-
     return {
         "post_id": post_id_for(item, text, url),
         "published_date": published,

@@ -20,6 +20,7 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
     cfg.setdefault("output", {})
     cfg["output"]["google_sheet_id"] = sheet_id or ""
     cfg["apify_token"] = os.getenv("APIFY_API_TOKEN") or os.getenv("APIFY_TOKEN") or ""
+    cfg["serpapi_key"] = os.getenv("SERPAPI_API_KEY") or os.getenv("SERP_API_KEY") or ""
     return cfg
 
 

@@ -184,11 +184,16 @@ def matches_job_search(text: str, job_roles: list[str], keywords: list[str] | No
 
 
 def detect_job_type(text: str) -> str:
-    if "hybrid" in text:
+    t = (text or "").lower()
+    if re.search(r"\bhybrid\b", t):
         return "Hybrid"
-    if "remote" in text or "work from home" in text or "wfh" in text:
+    if re.search(
+        r"\b(remote|work from home|wfh|fully remote|100%\s*remote|remote-first|remote first|"
+        r"arbeit von zuhause|homeoffice|home office)\b",
+        t,
+    ):
         return "Remote"
-    if "on-site" in text or "onsite" in text or "in-office" in text or "office based" in text:
+    if re.search(r"\b(on-?site|in-?office|office[- ]based|vor ort|präsenz)\b", t):
         return "On-Site"
     return "Unknown"
 
@@ -331,9 +336,54 @@ def is_germany_location(location: str, search_location: str = "") -> bool:
     hay = f"{location} {search_location}".lower()
     if not hay.strip():
         return False
-    if "remote" in hay and any(t in hay for t in ("germany", "deutschland", "berlin", "munich", "münchen")):
-        return True
     return any(tok in hay for tok in GERMANY_TOKENS)
+
+
+EU_COUNTRY_TOKENS = [
+    "austria", "österreich", "belgium", "belgi", "bulgaria", "croatia", "cyprus",
+    "czech", "czechia", "denmark", "danmark", "estonia", "finland", "france",
+    "germany", "deutschland", "greece", "hungary", "ireland", "italy", "italia",
+    "latvia", "lithuania", "luxembourg", "malta", "netherlands", "holland",
+    "poland", "polska", "portugal", "romania", "slovakia", "slovenia", "spain",
+    "españa", "sweden", "sverige",
+    "european union", "berlin", "munich", "münchen", "hamburg", "frankfurt",
+    "cologne", "köln", "amsterdam", "rotterdam", "utrecht", "paris", "lyon",
+    "madrid", "barcelona", "lisbon", "lisboa", "dublin", "rome", "roma", "milan",
+    "milano", "vienna", "wien", "prague", "praha", "warsaw", "warszawa", "krakow",
+    "brussels", "bruxelles", "stockholm", "copenhagen", "helsinki", "tallinn",
+    "vilnius", "riga", "budapest", "bucharest", "sofia", "zagreb", "ljubljana",
+    "bratislava", "athens", "nicosia", "valletta",
+]
+
+
+def is_eu_location(location: str) -> bool:
+    hay = f" {(location or '').lower()} "
+    if not hay.strip():
+        return False
+    non_eu = (
+        " united states", " usa", " u.s.", " canada", " india", " united kingdom",
+        " uk ", " london", " switzerland", " zurich", " geneva", " norway", " oslo",
+        " iceland", " australia", " singapore", " dubai", " uae",
+    )
+    if any(x in hay for x in non_eu):
+        # Still allow if a clear EU country/city is also present (e.g. "Remote - Berlin")
+        if not any(tok in hay for tok in EU_COUNTRY_TOKENS):
+            return False
+    return any(tok in hay for tok in EU_COUNTRY_TOKENS)
+
+
+def allows_location_policy(*, job_type: str, location: str, description: str = "") -> bool:
+    """Remote = worldwide. Hybrid / On-Site / Unknown = EU only."""
+    jt = (job_type or "Unknown").strip()
+    loc = location or ""
+
+    if re.search(r"\b(remote|worldwide|global|anywhere)\b", loc.lower()):
+        return True
+    if jt == "Remote":
+        return True
+    if jt in {"Hybrid", "On-Site", "Unknown"}:
+        return is_eu_location(loc)
+    return False
 
 
 def is_fresher_friendly(
@@ -378,33 +428,64 @@ def is_fresher_friendly(
 
 
 def is_ai_related(title: str, description: str, roles: list[str] | None = None) -> bool:
+    return is_data_ai_sector(title, description, roles)
+
+
+def is_data_ai_sector(title: str, description: str, roles: list[str] | None = None) -> bool:
+    """Data + AI sector (MSc/BSc Data Science, analytics, ML, AI roles)."""
     hay = f"{title} {description}".lower()
-    ai_tokens = [
-        "artificial intelligence",
+    tokens = [
+        "data scientist",
+        "data science",
+        "data analyst",
+        "data analytics",
+        "data engineer",
+        "data engineering",
         "machine learning",
-        " deep learning",
+        "ml engineer",
+        "mlops",
+        "ai engineer",
+        "artificial intelligence",
+        "deep learning",
         "generative ai",
         " genai",
         " llm",
         "nlp",
+        "natural language",
         "computer vision",
-        " neural",
-        "ki-",
-        " ki ",
+        "research scientist",
+        "applied scientist",
+        "quantitative analyst",
+        "quant analyst",
+        "business intelligence",
+        " bi analyst",
+        "analytics engineer",
+        "statistician",
+        "decision scientist",
+        "predictive",
+        "big data",
+        "data platform",
+        "data warehouse",
+        "etl",
+        "dbt",
+        "tensorflow",
+        "pytorch",
+        "scikit",
+        "pandas",
+        "tableau",
+        "power bi",
+        "looker",
+        "snowflake",
+        "databricks",
         "ki engineer",
-        "ml engineer",
-        "ai engineer",
-        "data scientist",
-        "mlops",
-        "foundation model",
+        "künstliche intelligenz",
     ]
-    if any(t in hay for t in ai_tokens):
+    if any(t in hay for t in tokens):
         return True
     for role in roles or []:
         if role and role.lower() in hay:
             return True
-    # bare "ai" as word
-    return bool(re.search(r"\bai\b", hay))
+    return bool(re.search(r"\b(ai|ml|data)\b", hay))
 
 
 def qualify_post(

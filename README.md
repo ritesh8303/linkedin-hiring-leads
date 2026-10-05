@@ -1,32 +1,52 @@
-# LinkedIn Hiring Jobs Scraper
+# Data & AI Job Scraper
 
-Pulls LinkedIn jobs via Apify, filters for your search, and saves CSV.
+Standalone daily job board for **Data Science, ML, and AI** roles (MSc/BSc Data Science and similar).
 
-## Live job board (GitHub Pages)
+This is a **separate repo** from [DataForge](https://github.com/ritesh8303/dataforge) (the EU job lakehouse). Keep them separate: this project is your personal apply list; DataForge is the public ATS/API pipeline.
 
-Browse the latest Germany AI fresher snapshot at:
+- **Remote** → worldwide  
+- **Hybrid / On-site** → EU only  
 
-**https://ritesh8303.github.io/linkedin-hiring-leads/**
+## Providers
 
-(Source files in `docs/`.)
+| Provider | Role |
+| --- | --- |
+| LinkedIn guest | Free, primary volume (keywords rotate daily) |
+| SerpAPI | Free tier backup |
+| Apify | ~450 jobs/month cap (~$5 credit) |
 
-## Quick start
+## Setup
 
 ```powershell
 cd C:\Users\rites\Projects\linkedin-hiring-leads
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-Copy-Item .env.example .env
-# add APIFY_API_TOKEN to .env
-python -m src
+copy .env.example .env
+# Add SERPAPI_API_KEY and APIFY_API_TOKEN
 ```
 
-Refresh the Pages dataset after a scrape:
+## Run
 
 ```powershell
-$env:PYTHONPATH='.'
-python scripts\export_docs_jobs.py
+python -m src
+python -m src --schedule   # daily 18:30 Europe/Berlin
+.\scripts\install_windows_task.ps1   # Task: DataForgePersonalJobRadar or rename as you like
 ```
 
-Then commit and push `docs/jobs.json`.
+## Live board
+
+https://ritesh8303.github.io/linkedin-hiring-leads/
+
+With `auto_export_docs: true`, each run refreshes `docs/jobs.json` — commit + push to update the site.
+
+## `.env`
+
+```
+SERPAPI_API_KEY=...
+APIFY_API_TOKEN=...
+```
+
+## Architecture
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).

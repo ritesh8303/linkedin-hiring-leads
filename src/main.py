@@ -16,9 +16,10 @@ if hasattr(sys.stdout, "reconfigure"):
 from rich.console import Console
 from rich.table import Table
 
-from .apify_fetch import build_actor_input, fetch_hiring_posts, list_search_keywords, resolve_actor_id
 from .config import load_config, resolve_path
 from .enrich import enrich_item
+from .providers import fetch_from_providers
+from .scheduler_util import seconds_until_next_run
 from .storage import SeenStore, append_csv, append_google_sheet
 
 console = Console()
@@ -37,7 +38,9 @@ def process_items(items: list[dict], cfg: dict) -> list[dict]:
     mode = (cfg.get("mode") or "jobs").lower()
     entry_level_only = bool(cfg.get("entry_level_only"))
     require_germany = bool(cfg.get("require_germany"))
-    require_ai = bool(cfg.get("require_ai", True if entry_level_only else False))
+    location_policy = str(cfg.get("location_policy") or "")
+    require_ai = bool(cfg.get("require_ai"))
+    require_data_ai = bool(cfg.get("require_data_ai", True))
     search_location = str(cfg.get("location") or "")
     seen_path = resolve_path(cfg["output"]["sqlite_path"])
     store = SeenStore(seen_path)
@@ -54,8 +57,10 @@ def process_items(items: list[dict], cfg: dict) -> list[dict]:
                 mode=mode,
                 entry_level_only=entry_level_only,
                 require_germany=require_germany,
+                location_policy=location_policy,
                 search_location=search_location,
                 require_ai=require_ai,
+                require_data_ai=require_data_ai,
             )
             if row is None:
                 stats["filtered"] += 1
@@ -109,70 +114,60 @@ def save_rows(rows: list[dict], cfg: dict) -> None:
         console.print(f"... and {len(rows) - 30} more (see CSV)")
 
 
-def fetch_all_items(cfg: dict) -> list[dict]:
-    actor = resolve_actor_id(cfg)
-    mode = (cfg.get("mode") or "jobs").lower()
-    console.print(f"[cyan]Running Apify actor[/] {actor} (mode={mode})")
+def _export_docs_if_enabled(cfg: dict) -> None:
+    if not cfg.get("auto_export_docs"):
+        return
+    try:
+        import subprocess
 
-    if mode != "jobs":
-        run_input = build_actor_input(cfg)
-        console.print(f"Roles: {', '.join(cfg.get('job_roles') or [])}")
-        return fetch_hiring_posts(cfg["apify_token"], actor, run_input)
-
-    keywords = list_search_keywords(cfg)
-    location = cfg.get("location") or "Remote"
-    console.print(f"Location: {location}")
-    console.print(f"Keywords ({len(keywords)}): {', '.join(keywords)}")
-
-    all_items: list[dict] = []
-    seen_ids: set[str] = set()
-    for kw in keywords:
-        console.print(f"[magenta]Search:[/] {kw}")
-        run_input = build_actor_input(cfg, keyword=kw)
-        items = fetch_hiring_posts(cfg["apify_token"], actor, run_input)
-        added = 0
-        for item in items:
-            jid = str(item.get("jobId") or item.get("jobUrl") or item.get("url") or "")
-            if jid and jid in seen_ids:
-                continue
-            if jid:
-                seen_ids.add(jid)
-            item.setdefault("searchKeywords", kw)
-            item.setdefault("searchLocation", location)
-            all_items.append(item)
-            added += 1
-        console.print(f"  got {len(items)} raw, +{added} unique (total {len(all_items)})")
-    return all_items
+        script = ROOT / "scripts" / "export_docs_jobs.py"
+        subprocess.run([sys.executable, str(script)], cwd=str(ROOT), check=False)
+    except Exception as exc:  # noqa: BLE001
+        console.print(f"[yellow]Docs export skipped:[/] {exc}")
 
 
 def run_once(*, dry_run: bool = False) -> int:
     cfg = load_config()
     if dry_run:
-        console.print("[magenta]Dry run — using sample posts (no Apify credits)[/]")
+        console.print("[magenta]Dry run — using sample posts (no network)[/]")
         items = sample_items()
     else:
-        items = fetch_all_items(cfg)
+        items = fetch_from_providers(cfg)
 
     rows = process_items(items, cfg)
     save_rows(rows, cfg)
+    _export_docs_if_enabled(cfg)
     return 0
 
 
 def run_schedule() -> int:
     cfg = load_config()
-    hours = float(cfg.get("schedule_hours") or 6)
-    console.print(f"[cyan]Scheduler started — every {hours} hour(s). Ctrl+C to stop.[/]")
-    run_once(dry_run=False)
+    sched = cfg.get("schedule") or {}
+    time_str = str(sched.get("time") or cfg.get("schedule_time") or "18:30")
+    tz_name = str(sched.get("timezone") or cfg.get("schedule_timezone") or "Europe/Berlin")
+    run_immediately = bool(sched.get("run_on_start", True))
+
+    console.print(
+        f"[cyan]Daily scheduler[/] — scrape at {time_str} ({tz_name}), "
+        f"so jobs are ready before your ~8 PM applications. Ctrl+C to stop."
+    )
+    if run_immediately:
+        run_once(dry_run=False)
     while True:
-        console.print(f"Sleeping {hours}h...")
-        time.sleep(hours * 3600)
+        secs, nxt = seconds_until_next_run(time_str=time_str, tz_name=tz_name)
+        console.print(f"Next run at {nxt.isoformat()} (sleep {int(secs // 60)} min)")
+        time.sleep(secs)
         run_once(dry_run=False)
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Scrape LinkedIn jobs for your job search")
-    parser.add_argument("--dry-run", action="store_true", help="Process sample data only (no Apify)")
-    parser.add_argument("--schedule", action="store_true", help="Re-run every schedule_hours from config")
+    parser = argparse.ArgumentParser(description="Scrape jobs for your job search (free providers + optional Apify)")
+    parser.add_argument("--dry-run", action="store_true", help="Process sample data only")
+    parser.add_argument(
+        "--schedule",
+        action="store_true",
+        help="Run daily at schedule.time (default 18:30) before evening applications",
+    )
     args = parser.parse_args(argv)
 
     try:
