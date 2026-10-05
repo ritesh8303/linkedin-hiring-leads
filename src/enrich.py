@@ -154,6 +154,7 @@ def enrich_item(
         "hiring_intent": item.get("hiringIntent") or item.get("employmentType") or "",
         "seniority": seniority,
         "location": location,
+        "source": str(item.get("source") or ""),
         "_filter_reason": reason,
         "_location": location,
     }

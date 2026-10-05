@@ -8,20 +8,20 @@ There is **no separate cloud backend server**. Everything is a **local Python jo
  │  Windows Task Scheduler  →  daily 18:30                     │
  │           │                                                 │
  │           ▼                                                 │
- │  python -m src   (src/main.py)                              │
+ │  python -m src / --dashboard                                │
  │           │                                                 │
+ │           ├─► Arbeitnow / Remotive / Himalayas / BA API     │
+ │           ├─► Greenhouse + Ashby + Lever (rotated boards)   │
  │           ├─► LinkedIn guest HTTP   (free)                  │
  │           ├─► SerpAPI Google Jobs   (free tier)             │
  │           └─► Apify actor           (~$5/mo budget)         │
  │           │                                                 │
  │           ▼                                                 │
- │  filters (Data/AI + Remote world / EU hybrid-onsite)        │
+ │  filters (Data/AI/cloud + Remote world / EU hybrid-onsite)  │
  │           │                                                 │
  │           ▼                                                 │
- │  data/data_ai_remote_eu_jobs.csv   + SQLite dedupe DB       │
- │           │                                                 │
- │           ▼                                                 │
- │  docs/jobs.json  (auto-export)                              │
+ │  SQLite dedupe (id + URL + company|title|location)          │
+ │  data/*.csv  →  docs/jobs.json                              │
  └─────────────────────────────────────────────────────────────┘
            │  git push (optional)
            ▼

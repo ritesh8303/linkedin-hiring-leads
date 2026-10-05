@@ -72,11 +72,24 @@ def process_items(
                 stats["filtered"] += 1
                 continue
             pid = row["post_id"]
-            if pid in run_fps or store.has(pid):
+            url = str(row.get("apply_link") or row.get("post_url") or "")
+            if pid in run_fps or store.has_any(
+                pid,
+                url=url,
+                company=str(row.get("company") or ""),
+                title=str(row.get("hiring_role") or ""),
+                location=str(row.get("location") or ""),
+            ):
                 stats["dup"] += 1
                 continue
             run_fps.add(pid)
-            store.add(pid)
+            store.add(
+                pid,
+                url=url,
+                company=str(row.get("company") or ""),
+                title=str(row.get("hiring_role") or ""),
+                location=str(row.get("location") or ""),
+            )
             qualified.append(row)
             stats["saved"] += 1
     finally:

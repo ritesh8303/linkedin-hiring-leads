@@ -10,24 +10,28 @@ Personal job board for **Data Science, Machine Learning, and AI** roles — remo
 
 ## Features
 
-- **Multi-source scrape** — LinkedIn guest (free), SerpAPI Google Jobs, Apify (budget-capped)
-- **Smart filters** — Data/AI titles; remote worldwide; hybrid & on-site limited to the EU
-- **Deduped storage** — CSV + SQLite; optional Google Sheets
+- **Multi-source scrape (local)** — free ATS + public APIs + LinkedIn guest / SerpAPI / Apify
+- **Global public ATS** — Greenhouse, Ashby, Lever, SmartRecruiters, Workable, Recruitee, Personio XML, Pinpoint, Teamtailor, Comeet, Workday CXS (see [`docs/ATS_COVERAGE.md`](docs/ATS_COVERAGE.md))
+- **Career-map keywords** — DS/AI, data engineering, BI/analytics, MLOps/DataOps, cloud (AWS/Azure/GCP)
+- **Strong dedupe** — SQLite by job id, normalized URL, and company+title+location
+- **Smart filters** — Data/AI/cloud titles; remote worldwide; hybrid & on-site limited to the EU
 - **Static job board** — GitHub Pages UI with search and filters
 - **Local dashboard** — one-click **Run scrape** with live pipeline logs → **Ready to apply**
 
 ## Architecture
 
 ```
-Your PC                         GitHub Pages
-────────                        ────────────
-python -m src [--dashboard]  →  docs/jobs.json
-  ├─ LinkedIn guest             (board UI)
-  ├─ SerpAPI (Google Jobs)
-  └─ Apify (capped ~450/mo)
+Your PC (local only — separate from DataForge cloud)     GitHub Pages
+────────────────────────────────────────────────────     ────────────
+python -m src [--dashboard]  →  CSV + SQLite + jobs.json → board UI
+  ├─ Arbeitnow / Remotive / Himalayas / BA Jobsuche
+  ├─ Greenhouse + Ashby + Lever + SmartRecruiters + Workable + Recruitee
+  ├─ Personio XML + Pinpoint + Teamtailor + Comeet + Workday CXS
+  ├─ LinkedIn guest · SerpAPI · Apify (budget)
+  └─ Filter + cross-source dedupe
 ```
 
-Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · ATS coverage: [`docs/ATS_COVERAGE.md`](docs/ATS_COVERAGE.md) · boards: [`config/ats_boards.yaml`](config/ats_boards.yaml)
 
 ## Quick start
 

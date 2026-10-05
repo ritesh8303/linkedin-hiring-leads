@@ -432,7 +432,7 @@ def is_ai_related(title: str, description: str, roles: list[str] | None = None) 
 
 
 def is_data_ai_sector(title: str, description: str, roles: list[str] | None = None) -> bool:
-    """Data + AI sector (MSc/BSc Data Science, analytics, ML, AI roles)."""
+    """Data science, AI/ML, analytics, data engineering, and cloud-data roles."""
     hay = f"{title} {description}".lower()
     tokens = [
         "data scientist",
@@ -441,15 +441,21 @@ def is_data_ai_sector(title: str, description: str, roles: list[str] | None = No
         "data analytics",
         "data engineer",
         "data engineering",
+        "analytics engineer",
         "machine learning",
         "ml engineer",
         "mlops",
+        "dataops",
         "ai engineer",
+        "ai research",
+        "ai specialist",
+        "ml specialist",
         "artificial intelligence",
         "deep learning",
         "generative ai",
         " genai",
         " llm",
+        "large language",
         "nlp",
         "natural language",
         "computer vision",
@@ -459,15 +465,37 @@ def is_data_ai_sector(title: str, description: str, roles: list[str] | None = No
         "quant analyst",
         "business intelligence",
         " bi analyst",
-        "analytics engineer",
+        "bi developer",
+        "business analyst",
+        "business data analyst",
+        "market research",
+        "product analyst",
+        "marketing analyst",
         "statistician",
         "decision scientist",
-        "predictive",
+        "data consultant",
+        "technology consultant",
+        "data visualization",
+        "data visualisation",
+        "data governance",
+        "data ethics",
+        "data architect",
+        "data modeler",
+        "data modeller",
+        "database administrator",
+        "database architect",
+        "database engineer",
         "big data",
         "data platform",
         "data warehouse",
+        "data solutions",
         "etl",
+        "elt ",
         "dbt",
+        "spark",
+        "kafka",
+        "airflow",
+        "hadoop",
         "tensorflow",
         "pytorch",
         "scikit",
@@ -477,15 +505,41 @@ def is_data_ai_sector(title: str, description: str, roles: list[str] | None = No
         "looker",
         "snowflake",
         "databricks",
+        "redshift",
+        "bigquery",
+        "cloud data",
+        "cloud engineer",
+        "cloud architect",
+        "solutions architect",
+        "technical product manager",
+        "devops",
+        "platform engineer",
+        "ml platform",
+        "feature store",
+        "aws ",
+        "amazon web services",
+        "sagemaker",
+        "bedrock",
+        "azure",
+        "vertex ai",
+        "gcp ",
+        "google cloud",
         "ki engineer",
         "künstliche intelligenz",
+        "datenanalyst",
+        "datenwissenschaft",
+        "dateningenieur",
+        "werkstudent data",
+        "working student data",
+        "working student ai",
+        "working student ml",
     ]
     if any(t in hay for t in tokens):
         return True
     for role in roles or []:
         if role and role.lower() in hay:
             return True
-    return bool(re.search(r"\b(ai|ml|data)\b", hay))
+    return bool(re.search(r"\b(ai|ml|data|aws|cloud|etl|dbt)\b", hay))
 
 
 def qualify_post(

@@ -1,7 +1,15 @@
-# Data + AI sector (MSc/BSc Data Science) — Remote worldwide + EU hybrid/onsite
+# Local personal job radar (NOT DataForge cloud).
+# BSc/MSc Data Science + data engineering + cloud (AWS/Azure/GCP) career map.
+# Remote worldwide; hybrid / on-site EU only.
+
 mode: jobs
 
 providers:
+  - arbeitnow
+  - remotive
+  - himalayas
+  - ba_api
+  - ats
   - linkedin_guest
   - serpapi
   - apify
@@ -12,52 +20,154 @@ require_data_ai: true
 require_ai: false
 entry_level_only: false
 
-# Broad DS / AI / analytics roles (not only fresher)
+# Career-map keywords (junior -> specialized / cloud-hybrid)
 search_keywords:
+  # Core Data Science & AI
   - Data Scientist
-  - Data Science
-  - Data Analyst
-  - Analytics Engineer
-  - Data Engineer
-  - Machine Learning Engineer
-  - ML Engineer
-  - AI Engineer
-  - Applied Scientist
-  - Research Scientist
-  - Business Intelligence Analyst
-  - BI Analyst
-  - Quantitative Analyst
   - Junior Data Scientist
   - Graduate Data Scientist
-  - Data Science Intern
-  - Machine Learning Intern
-  - NLP Engineer
-  - Computer Vision Engineer
+  - Machine Learning Engineer
+  - ML Engineer
+  - Junior Machine Learning Engineer
+  - AI Engineer
+  - AI Research Scientist
+  - Research Scientist
+  - Applied Scientist
+  - AI Specialist
+  - ML Specialist
   - Deep Learning Engineer
   - Generative AI Engineer
+  - GenAI Engineer
   - LLM Engineer
+  - NLP Engineer
+  - Computer Vision Engineer
+  # Data Engineering & infrastructure
+  - Data Engineer
+  - Junior Data Engineer
+  - Graduate Data Engineer
+  - Big Data Engineer
+  - Cloud Data Engineer
+  - Database Administrator
+  - Database Architect
+  - Database Engineer
+  - Data Modeler
+  - Data Architect
+  - ETL Developer
+  - Spark Engineer
+  - Databricks Engineer
+  - Snowflake Engineer
+  - Data Platform Engineer
+  - Pipeline Engineer
+  # Analytics & BI
+  - Data Analyst
+  - Junior Data Analyst
+  - Graduate Data Analyst
+  - Business Intelligence Analyst
+  - BI Analyst
+  - BI Developer
+  - Business Analyst
+  - Business Data Analyst
+  - Market Research Analyst
+  - Product Analyst
+  - Marketing Analyst
+  - Analytics Engineer
+  - Data Visualization Specialist
+  - Tableau Developer
+  - Power BI Developer
+  # Specialized / consulting
+  - Quantitative Analyst
+  - Quant Analyst
+  - Data Consultant
+  - Technology Consultant
+  - Data Governance Specialist
+  - Data Ethics Specialist
+  - Privacy Analyst
+  # Cloud / Ops hybrid
+  - Cloud Data Engineer
+  - Cloud Architect
+  - Cloud Solutions Architect
+  - Solutions Architect AWS
+  - Solutions Architect Data
   - MLOps Engineer
-  - Data Analytics
-  - Statistician
+  - DataOps Engineer
+  - AI Solutions Architect
+  - Cloud Solutions Architect AI
+  - Technical Product Manager Data
+  - Technical Product Manager Cloud
+  - Data Solutions Engineer
+  - AWS Data Engineer
+  - AWS Machine Learning
+  - Azure Data Engineer
+  - GCP Data Engineer
+  - SageMaker Engineer
+  - Bedrock Engineer
+  # Early-career / DE titles
+  - Data Science Intern
+  - Machine Learning Intern
+  - AI Intern
+  - Data Engineer Intern
+  - Werkstudent Data Science
+  - Werkstudent Data Engineer
+  - Werkstudent Machine Learning
+  - Working Student Data
+  - Working Student AI
+  - Working Student Analytics
+  - Praktikant Data Science
+  - Trainee Data Science
+  - Datenanalyst
+  - Datenwissenschaftler
+  - Dateningenieur
+  - KI Engineer
 
 job_roles:
   - Data Scientist
   - Data Analyst
   - Data Engineer
-  - Analytics
   - Machine Learning
   - ML Engineer
   - AI Engineer
-  - Business Intelligence
-  - Research Scientist
-  - Applied Scientist
-  - Quantitative
-  - NLP
-  - Computer Vision
   - Deep Learning
   - Generative AI
+  - GenAI
+  - LLM
+  - NLP
+  - Computer Vision
+  - Applied Scientist
+  - Research Scientist
+  - Business Intelligence
+  - BI Analyst
+  - Business Analyst
+  - Analytics Engineer
+  - Quantitative
+  - Data Consultant
+  - Data Architect
+  - Cloud Architect
+  - Cloud Data
   - MLOps
-  - Artificial Intelligence
+  - DataOps
+  - Big Data
+  - Database
+  - Data Modeler
+  - Data Visualization
+  - Market Research
+  - Data Governance
+  - Solutions Architect
+  - Product Manager Data
+  - AWS
+  - Azure
+  - GCP
+  - Snowflake
+  - Databricks
+  - dbt
+  - Spark
+  - ETL
+  - SageMaker
+  - Bedrock
+  - Werkstudent
+  - Working Student
+  - Datenanalyst
+  - Dateningenieur
+  - KI
 
 keywords:
   - data
@@ -65,12 +175,20 @@ keywords:
   - machine learning
   - AI
   - ML
+  - AWS
+  - Azure
+  - GCP
+  - cloud
+  - ETL
+  - LLM
+  - GenAI
+  - MLOps
+  - DataOps
 
-# Per-run limits (rotate daily — full coverage over ~1 week)
-linkedin_remote_keywords_per_run: 6
-linkedin_eu_keywords_per_run: 4
-eu_countries_per_run: 4
-eu_max_keywords: 4
+linkedin_remote_keywords_per_run: 8
+linkedin_eu_keywords_per_run: 5
+eu_countries_per_run: 5
+eu_max_keywords: 5
 
 remote_search_locations:
   - Remote
@@ -91,25 +209,72 @@ eu_search_locations:
 
 serpapi_keywords:
   - Data Scientist remote
-  - Data Analyst remote
-  - Machine Learning Engineer
-  - Data Engineer
-  - AI Engineer
-  - Analytics Engineer
-  - Junior Data Scientist
-  - Graduate Data Scientist
+  - Machine Learning Engineer remote
+  - Data Engineer AWS
+  - Cloud Data Engineer
+  - Analytics Engineer dbt
+  - MLOps Engineer
+  - AI Engineer remote
+  - Junior Data Analyst
+  - Business Intelligence Analyst
+  - Data Architect cloud
+  - Quantitative Analyst
+  - Werkstudent Data Science
 
 serpapi_locations:
   - Remote
   - Berlin, Germany
+  - Munich, Germany
   - Amsterdam, Netherlands
   - Dublin, Ireland
+  - Frankfurt, Germany
 
-serpapi_keywords_per_run: 5
+serpapi_keywords_per_run: 6
 serpapi_locations_per_run: 3
 serpapi_max_results: 15
 
-# ~$5/month on axery (~$1.50/1000 jobs) → ~450 jobs/month cap
+arbeitnow_max_pages: 3
+himalayas_limit: 80
+remotive_categories:
+  - data
+  - software-dev
+
+ba_queries_per_run: 8
+ba_page_size: 25
+ba_queries:
+  - Data Scientist
+  - Data Analyst
+  - Data Engineer
+  - Machine Learning Engineer
+  - Cloud Data Engineer
+  - MLOps
+  - Business Intelligence Analyst
+  - Analytics Engineer
+  - KI Engineer
+  - Datenanalyst
+  - Dateningenieur
+  - Werkstudent Data Science
+  - Werkstudent Data Engineer
+  - Generative AI
+  - Cloud Architect
+
+# Global ATS boards (Greenhouse, Ashby, Lever, SmartRecruiters, Workable, Recruitee)
+# Rotated each day so the full list is covered over ~1 week
+ats_boards_file: config/ats_boards.yaml
+personio_tenants_file: config/personio_tenants.json
+workday_targets_file: config/workday_targets.yaml
+ats_greenhouse_per_run: 25
+ats_ashby_per_run: 12
+ats_lever_per_run: 6
+ats_smartrecruiters_per_run: 8
+ats_workable_per_run: 3
+ats_recruitee_per_run: 2
+ats_pinpoint_per_run: 4
+ats_teamtailor_per_run: 4
+ats_comeet_per_run: 3
+ats_personio_per_run: 10
+ats_workday_per_run: 3
+
 apify_monthly_job_budget: 450
 apify_max_jobs_per_search: 18
 apify_searches_per_run: 2
@@ -127,7 +292,6 @@ apify_actor_jobs: axery/linkedin-jobs-scraper
 apify_actor_hiring_posts: apt_marble/linkedin-hiring-posts-scraper
 apify_actor: axery/linkedin-jobs-scraper
 
-# Daily scrape before you apply (~8 PM). Default: 6:30 PM Europe/Berlin
 schedule:
   time: "18:30"
   timezone: Europe/Berlin

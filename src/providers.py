@@ -9,6 +9,13 @@ from rich.console import Console
 
 from .apify_budget import record_jobs, remaining_jobs
 from .apify_fetch import build_actor_input, fetch_hiring_posts, list_search_keywords, resolve_actor_id
+from .free_sources import (
+    fetch_arbeitnow,
+    fetch_ats_all,
+    fetch_ba_api,
+    fetch_himalayas,
+    fetch_remotive,
+)
 from .keyword_rotation import pick_keywords
 from .linkedin_guest import fetch_linkedin_guest_jobs
 from .progress import EventCallback, emit
@@ -304,6 +311,31 @@ def fetch_from_providers(
                 "apify",
                 f"Apify used {used_this_run} jobs this run; ~{remaining_jobs(cfg)} left this month",
             )
+
+        elif name in {"arbeitnow"}:
+            items = fetch_arbeitnow(cfg, on_event=on_event)
+            all_items, added = merge_unique(all_items, items)
+            emit(on_event, "arbeitnow", f"+{added} unique (total {len(all_items)})", total=len(all_items))
+
+        elif name in {"himalayas"}:
+            items = fetch_himalayas(cfg, on_event=on_event)
+            all_items, added = merge_unique(all_items, items)
+            emit(on_event, "himalayas", f"+{added} unique (total {len(all_items)})", total=len(all_items))
+
+        elif name in {"remotive"}:
+            items = fetch_remotive(cfg, on_event=on_event)
+            all_items, added = merge_unique(all_items, items)
+            emit(on_event, "remotive", f"+{added} unique (total {len(all_items)})", total=len(all_items))
+
+        elif name in {"ba_api", "ba", "arbeitsagentur"}:
+            items = fetch_ba_api(cfg, on_event=on_event)
+            all_items, added = merge_unique(all_items, items)
+            emit(on_event, "ba_api", f"+{added} unique (total {len(all_items)})", total=len(all_items))
+
+        elif name in {"ats", "greenhouse", "ashby", "lever"}:
+            items = fetch_ats_all(cfg, on_event=on_event)
+            all_items, added = merge_unique(all_items, items)
+            emit(on_event, "ats", f"+{added} unique (total {len(all_items)})", total=len(all_items))
 
         else:
             console.print(f"[yellow]Unknown provider skipped:[/] {provider}")

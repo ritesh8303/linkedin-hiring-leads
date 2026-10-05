@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import re
 import sqlite3
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 
 FIELDNAMES = [
@@ -24,15 +26,49 @@ FIELDNAMES = [
     "whatsapp",
     "apply_link",
     "hiring_intent",
+    "source",
 ]
 
 
+def normalize_url_key(url: str) -> str:
+    u = (url or "").strip().lower()
+    if not u:
+        return ""
+    try:
+        p = urlparse(u)
+        host = (p.netloc or "").replace("www.", "")
+        path = re.sub(r"/+$", "", p.path or "")
+        return f"{host}{path}"
+    except Exception:
+        return u
+
+
+def semantic_key(company: str, title: str, location: str = "") -> str:
+    raw = "|".join(
+        [
+            re.sub(r"\s+", " ", (company or "").lower()).strip(),
+            re.sub(r"\s+", " ", (title or "").lower()).strip(),
+            re.sub(r"\s+", " ", (location or "").lower()).strip()[:40],
+        ]
+    )
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
+
+
 class SeenStore:
+    """Cross-source dedupe by post_id, normalized URL, and company|title|location."""
+
     def __init__(self, db_path: Path):
         db_path.parent.mkdir(parents=True, exist_ok=True)
         self.conn = sqlite3.connect(db_path)
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS seen_posts (post_id TEXT PRIMARY KEY, seen_at TEXT DEFAULT CURRENT_TIMESTAMP)"
+        )
+        self.conn.execute(
+            "CREATE TABLE IF NOT EXISTS seen_urls (url_key TEXT PRIMARY KEY, seen_at TEXT DEFAULT CURRENT_TIMESTAMP)"
+        )
+        self.conn.execute(
+            "CREATE TABLE IF NOT EXISTS seen_semantic ("
+            "sem_key TEXT PRIMARY KEY, seen_at TEXT DEFAULT CURRENT_TIMESTAMP)"
         )
         self.conn.commit()
 
@@ -40,8 +76,30 @@ class SeenStore:
         row = self.conn.execute("SELECT 1 FROM seen_posts WHERE post_id = ?", (post_id,)).fetchone()
         return row is not None
 
-    def add(self, post_id: str) -> None:
-        self.conn.execute("INSERT OR IGNORE INTO seen_posts (post_id) VALUES (?)", (post_id,))
+    def has_any(self, post_id: str, url: str = "", company: str = "", title: str = "", location: str = "") -> bool:
+        if post_id and self.has(post_id):
+            return True
+        uk = normalize_url_key(url)
+        if uk:
+            row = self.conn.execute("SELECT 1 FROM seen_urls WHERE url_key = ?", (uk,)).fetchone()
+            if row:
+                return True
+        sk = semantic_key(company, title, location)
+        if company and title:
+            row = self.conn.execute("SELECT 1 FROM seen_semantic WHERE sem_key = ?", (sk,)).fetchone()
+            if row:
+                return True
+        return False
+
+    def add(self, post_id: str, url: str = "", company: str = "", title: str = "", location: str = "") -> None:
+        if post_id:
+            self.conn.execute("INSERT OR IGNORE INTO seen_posts (post_id) VALUES (?)", (post_id,))
+        uk = normalize_url_key(url)
+        if uk:
+            self.conn.execute("INSERT OR IGNORE INTO seen_urls (url_key) VALUES (?)", (uk,))
+        if company and title:
+            sk = semantic_key(company, title, location)
+            self.conn.execute("INSERT OR IGNORE INTO seen_semantic (sem_key) VALUES (?)", (sk,))
         self.conn.commit()
 
     def close(self) -> None:

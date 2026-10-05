@@ -1,0 +1,8 @@
+- company: NVIDIA
+  host: https://nvidia.wd5.myworkdayjobs.com
+  tenant: nvidia
+  site: NVIDIAExternalCareerSite
+- company: Adobe
+  host: https://adobe.wd5.myworkdayjobs.com
+  tenant: adobe
+  site: external_experienced

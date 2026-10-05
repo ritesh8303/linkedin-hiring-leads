@@ -42,6 +42,7 @@ def main() -> None:
                 "apply": r.get("apply_link") or r.get("post_url") or "",
                 "employment": r.get("hiring_intent") or "",
                 "email": r.get("email") or "",
+                "source": r.get("source") or "",
                 "description": (r.get("post_content") or "")[:1800],
             }
         )
