@@ -13,8 +13,6 @@ OUT_PATH = ROOT / "docs" / "jobs.json"
 
 
 def main() -> None:
-    rows = list(CSV_PATH.open(encoding="utf-8"))
-    # reopen properly
     with CSV_PATH.open(encoding="utf-8", newline="") as f:
         records = list(csv.DictReader(f))
 
